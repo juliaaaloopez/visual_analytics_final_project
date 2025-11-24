@@ -1,0 +1,103 @@
+group_name;token
+has_fragrance;fragrance
+has_fragrance;parfum (fragrance)
+has_fragrance;fragrance (parfum)
+has_fragrance;parfum/fragrance
+has_fragrance;fragrance/parfum
+has_fragrance_allergens;limonene
+has_fragrance_allergens;linalool
+has_fragrance_allergens;citronellol
+has_fragrance_allergens;geraniol
+has_fragrance_allergens;benzyl salicylate
+has_fragrance_allergens;benzyl benzoate
+has_fragrance_allergens;hexyl cinnamal
+has_fragrance_allergens;hydroxycitronellal
+has_fragrance_allergens;eugenol
+has_fragrance_allergens;farnesol
+has_fragrance_allergens;isoeugenol
+has_fragrance_allergens;cinnamyl alcohol
+has_fragrance_allergens;butylphenyl methylpropional
+has_fragrance_allergens;coumarin
+has_fragrance_allergens;benzyl alcohol
+has_drying_alcohols;alcohol denat.
+has_drying_alcohols;alcohol
+has_drying_alcohols;isopropyl alcohol
+has_silicones;dimethicone
+has_silicones;cyclopentasiloxane
+has_silicones;dimethicone/vinyl dimethicone crosspolymer
+has_silicones;trimethylsiloxysilicate
+has_silicones;polysilicone-11
+has_silicones;vinyl dimethicone/methicone silsesquioxane crosspolymer
+has_silicones;methicone
+has_silicones;dimethiconol
+has_silicones;phenyl trimethicone
+has_humectants;glycerin
+has_humectants;butylene glycol
+has_humectants;propanediol
+has_humectants;pentylene glycol
+has_humectants;propylene glycol
+has_humectants;sodium pca
+has_humectants;sodium lactate
+has_humectants;sorbitol
+has_humectants;maltodextrin
+has_humectants;trehalose
+has_humectants;betaine
+has_emollient_oils;caprylic/capric triglyceride
+has_emollient_oils;helianthus annuus (sunflower) seed oil
+has_emollient_oils;simmondsia chinensis (jojoba) seed oil
+has_emollient_oils;cocos nucifera (coconut) oil
+has_emollient_oils;persea gratissima (avocado) oil
+has_emollient_oils;ricinus communis (castor) seed oil
+has_emollient_oils;vitis vinifera (grape) seed oil
+has_emollient_oils;carthamus tinctorius (safflower) seed oil
+has_emollient_oils;butyrospermum parkii (shea) butter
+has_emollient_oils;squalane
+has_emollient_oils;jojoba esters
+has_fatty_alcohols;cetearyl alcohol
+has_fatty_alcohols;cetyl alcohol
+has_fatty_alcohols;stearyl alcohol
+has_fatty_alcohols;behenyl alcohol
+has_exfol_acids_aha;lactic acid
+has_exfol_acids_aha;glycolic acid
+has_exfol_acids_aha;citric acid
+has_exfol_acids_aha;gluconolactone
+has_exfol_acids_bha;salicylic acid
+has_antioxidant_vitamins;ascorbic acid
+has_antioxidant_vitamins;ascorbyl palmitate
+has_antioxidant_vitamins;tocopherol
+has_antioxidant_vitamins;tocopheryl acetate
+has_antioxidant_vitamins;camellia sinensis leaf extract
+has_antioxidant_vitamins;rosmarinus officinalis (rosemary) leaf extract
+has_niacinamide;niacinamide
+has_caffeine;caffeine
+has_adenosine;adenosine
+has_barrier_soothing;ceramide np
+has_barrier_soothing;allantoin
+has_barrier_soothing;aloe barbadensis leaf juice
+has_barrier_soothing;bisabolol
+has_barrier_soothing;panthenol
+has_chemical_sunscreen;butyl methoxydibenzoylmethane
+has_chemical_sunscreen;ethylhexyl methoxycinnamate
+has_chemical_sunscreen;ethylhexyl salicylate
+has_mineral_sunscreen;titanium dioxide (ci 77891)
+has_mineral_sunscreen;titanium dioxide (ci 77891).
+has_mineral_sunscreen;ci 77891 (titanium dioxide)
+has_common_preservatives;phenoxyethanol
+has_common_preservatives;phenoxyethanol.
+has_common_preservatives;potassium sorbate
+has_common_preservatives;sodium benzoate
+has_common_preservatives;sodium dehydroacetate
+has_common_preservatives;chlorphenesin
+has_common_preservatives;sorbic acid
+has_common_preservatives;benzoic acid
+has_common_preservatives;dehydroacetic acid
+has_common_preservatives;tetrasodium edta
+has_common_preservatives;disodium edta
+has_common_preservatives;trisodium ethylenediamine disuccinate
+has_common_preservatives;leuconostoc/radish root ferment filtrate
+has_common_preservatives;sodium phytate
+has_hair_conditioning_agents;cetrimonium chloride
+has_hair_conditioning_agents;behentrimonium chloride
+has_hair_conditioning_agents;guar hydroxypropyltrimonium chloride
+has_hair_conditioning_agents;amodimethicone
+has_hair_conditioning_agents;cocamidopropyl betaine

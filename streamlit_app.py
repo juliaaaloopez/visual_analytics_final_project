@@ -28,12 +28,12 @@ def load_ingredient_groups(path: Path = INGREDIENT_FEATURES_PATH) -> pd.DataFram
 def build_data_health_summary(df: pd.DataFrame) -> pd.DataFrame:
     summary = pd.DataFrame({
         "dtype": df.dtypes,
-        "missing_count": df.isna().sum(),
         "unique_count": df.nunique(),
+        "memory_bytes": df.memory_usage(deep=True),
     })
     summary["dtype"] = summary["dtype"].astype(str)
-    summary["missing_pct"] = (summary["missing_count"] / len(df)).round(4)
-    return summary.sort_values("missing_pct", ascending=False)
+    summary["memory_bytes"] = summary["memory_bytes"].astype(int)
+    return summary.sort_values("memory_bytes", ascending=False)
 
 def compute_feature_uplift(df: pd.DataFrame, features: list[str], target: str = "popularity_score") -> pd.DataFrame:
     rows = []
@@ -46,17 +46,22 @@ def compute_feature_uplift(df: pd.DataFrame, features: list[str], target: str = 
         means = df.groupby(col_series)[target].mean()
         if 0 not in means.index or 1 not in means.index:
             continue
+        avg_without = means[0]
+        avg_with = means[1]
+        if pd.isna(avg_without) or avg_without == 0:
+            continue
+        uplift_pct = ((avg_with - avg_without) / avg_without) * 100
         rows.append({
             "feature": col,
-            "avg_with_feature": means[1],
-            "avg_without_feature": means[0],
-            "uplift": means[1] - means[0],
+            "avg_with_feature": avg_with,
+            "avg_without_feature": avg_without,
+            "uplift_pct": uplift_pct,
         })
     return (
         pd.DataFrame(rows)
-        .sort_values("uplift", ascending=False)
+        .sort_values("uplift_pct", ascending=False)
         if rows
-        else pd.DataFrame(columns=["feature", "avg_with_feature", "avg_without_feature", "uplift"])
+        else pd.DataFrame(columns=["feature", "avg_with_feature", "avg_without_feature", "uplift_pct"])
     )
 
 def compute_price_delta(df: pd.DataFrame, features: list[str], price_col: str = "price_usd") -> pd.DataFrame:
@@ -70,21 +75,31 @@ def compute_price_delta(df: pd.DataFrame, features: list[str], price_col: str = 
         means = df.groupby(col_series)[price_col].mean()
         if 0 not in means.index or 1 not in means.index:
             continue
+        avg_without = means[0]
+        avg_with = means[1]
+        if pd.isna(avg_without) or avg_without == 0:
+            continue
+        uplift_pct = ((avg_with - avg_without) / avg_without) * 100
         rows.append({
             "feature": col,
-            "avg_price_with": means[1],
-            "avg_price_without": means[0],
-            "delta": means[1] - means[0],
+            "avg_price_with": avg_with,
+            "avg_price_without": avg_without,
+            "uplift_pct": uplift_pct,
         })
     return (
         pd.DataFrame(rows)
-        .sort_values("delta", ascending=False)
+        .sort_values("uplift_pct", ascending=False)
         if rows
-        else pd.DataFrame(columns=["feature", "avg_price_with", "avg_price_without", "delta"])
+        else pd.DataFrame(columns=["feature", "avg_price_with", "avg_price_without", "uplift_pct"])
     )
 
 def format_feature_name(name: str) -> str:
     return name.replace("tag_", "").replace("_", " ").title()
+
+def format_percentage(value: float) -> str:
+    if pd.isna(value):
+        return "N/A"
+    return f"{value:.1f}%"
 
 products_df = load_products()
 ing_group_df = load_ingredient_groups()
@@ -97,6 +112,14 @@ ingredient_group_cols.extend(
     [c for c in products_df.columns if c.startswith("has_") and c not in ingredient_group_cols]
 )
 ingredient_group_cols = list(dict.fromkeys(ingredient_group_cols))
+binary_columns = [
+    col
+    for col in products_df.columns
+    if products_df[col].dropna().isin([0, 1]).all()
+]
+category_options = ["All Categories"] + sorted(
+    products_df["primary_category"].dropna().unique().tolist()
+)
 
 st.title("Sephora Product Insights Hub")
 st.caption(
@@ -123,20 +146,41 @@ with overview_tab:
     st.write(
         "These KPIs reflect the cleaned dataset exported from the EDA pipeline (Section 1), ensuring consistent category and feature engineering."
     )
+    st.markdown("### Raw Data Preview")
+    st.dataframe(products_df.head(50))
     with st.expander("Data Quality Overview"):
-        st.dataframe(build_data_health_summary(products_df).head(25))
+        dq_cols = ["dtype", "unique_count"]
+        dq_summary = build_data_health_summary(products_df).drop(index=binary_columns, errors="ignore")
+        st.dataframe(dq_summary[dq_cols].head(25))
     st.markdown("---")
     st.subheader("Distribution Highlights")
-    dist_cols = st.columns(2)
+    dist_rows = [st.columns(2), st.columns(2)]
     price_fig = px.histogram(products_df, x="price_usd", nbins=40, title="Price Distribution")
-    dist_cols[0].plotly_chart(price_fig, use_container_width=True)
-    loves_fig = px.histogram(
-        products_df,
-        x="loves_count",
+    dist_rows[0][0].plotly_chart(price_fig, use_container_width=True)
+    log_reviews = np.log1p(products_df["reviews"].clip(lower=0))
+    log_reviews_fig = px.histogram(
+        x=log_reviews,
         nbins=40,
-        title="Engagement (Loves) Distribution",
+        title="Log Reviews Distribution",
+        labels={"x": "log(1 + reviews)"},
     )
-    dist_cols[1].plotly_chart(loves_fig, use_container_width=True)
+    dist_rows[0][1].plotly_chart(log_reviews_fig, use_container_width=True)
+    log_loves = np.log1p(products_df["loves_count"].clip(lower=0))
+    log_loves_fig = px.histogram(
+        x=log_loves,
+        nbins=40,
+        title="Log Loves Count Distribution",
+        labels={"x": "log(1 + loves_count)"},
+    )
+    dist_rows[1][0].plotly_chart(log_loves_fig, use_container_width=True)
+    ratings_fig = px.histogram(
+        products_df,
+        x="reviews",
+        nbins=40,
+        title="Number of Ratings Distribution",
+        labels={"reviews": "Number of Ratings"},
+    )
+    dist_rows[1][1].plotly_chart(ratings_fig, use_container_width=True)
 
 with category_tab:
     st.subheader("Category Coverage & Demand")
@@ -148,6 +192,7 @@ with category_tab:
             avg_price=("price_usd", "mean"),
             avg_loves=("loves_count", "mean"),
             avg_reviews=("reviews", "mean"),
+            avg_rating=("rating", "mean"),
         )
         .sort_values("products", ascending=False)
         .round(2)
@@ -184,65 +229,154 @@ with category_tab:
         ),
         use_container_width=True,
     )
+    metric_cols = st.columns(2)
+    avg_reviews_fig = px.bar(
+        category_summary.reset_index().sort_values("avg_reviews", ascending=False),
+        x="primary_category",
+        y="avg_reviews",
+        title="Average Reviews by Category",
+        labels={"primary_category": "Category", "avg_reviews": "Avg Reviews"},
+    )
+    metric_cols[0].plotly_chart(avg_reviews_fig, use_container_width=True)
+    avg_rating_fig = px.bar(
+        category_summary.reset_index().sort_values("avg_rating", ascending=False),
+        x="primary_category",
+        y="avg_rating",
+        title="Average Rating by Category",
+        labels={"primary_category": "Category", "avg_rating": "Avg Rating"},
+    )
+    metric_cols[1].plotly_chart(avg_rating_fig, use_container_width=True)
 
 with popularity_tab:
     st.subheader("Popularity vs. Ingredients & Highlights")
     st.write(
         "Business Question: *Is there any relation between product popularity and ingredients/highlights?* Hover over the tables to spot boosters."
     )
-    popularity_metric = st.radio(
-        "Popularity metric",
-        ["popularity_score", "popularity_proxy"],
+    category_choice = st.selectbox(
+        "Select category to inspect",
+        options=category_options,
         index=0,
-        format_func=lambda x: "Popularity Score" if x == "popularity_score" else "Binary Proxy",
-        horizontal=True,
+        key="popularity_category_selector",
     )
-    highlight_uplift = compute_feature_uplift(products_df, highlight_cols, popularity_metric)
-    ingredient_uplift = compute_feature_uplift(products_df, ingredient_group_cols, popularity_metric)
+    popularity_filtered_df = (
+        products_df
+        if category_choice == "All Categories"
+        else products_df[products_df["primary_category"] == category_choice]
+    )
+    highlight_uplift = compute_feature_uplift(popularity_filtered_df, highlight_cols, "popularity_score")
+    ingredient_uplift = compute_feature_uplift(popularity_filtered_df, ingredient_group_cols, "popularity_score")
+
     st.markdown("#### Highlight Impact")
-    st.dataframe(
-        highlight_uplift.head(15).assign(
-            feature=lambda df_: df_["feature"].apply(format_feature_name)
+    if highlight_uplift.empty:
+        st.info("Not enough highlight variation in this slice to compute uplift.")
+    else:
+        highlight_table = (
+            highlight_uplift.assign(
+                feature=lambda df_: df_["feature"].apply(format_feature_name),
+                avg_with_feature=lambda df_: df_["avg_with_feature"].round(2),
+                avg_without_feature=lambda df_: df_["avg_without_feature"].round(2),
+                uplift_pct=lambda df_: df_["uplift_pct"].apply(format_percentage),
+            )
+            .rename(
+                columns={
+                    "feature": "Highlight Feature",
+                    "avg_with_feature": "Avg Popularity • Has Feature",
+                    "avg_without_feature": "Avg Popularity • No Feature",
+                    "uplift_pct": "Uplift %",
+                }
+            )
+            .head(10)
         )
-    )
+        st.dataframe(highlight_table)
+
     st.markdown("#### Ingredient Group Impact")
-    st.dataframe(ingredient_uplift.head(15))
+    if ingredient_uplift.empty:
+        st.info("Not enough ingredient signals in this slice to compute uplift.")
+    else:
+        ingredient_table = (
+            ingredient_uplift.assign(
+                feature=lambda df_: df_["feature"].apply(format_feature_name),
+                avg_with_feature=lambda df_: df_["avg_with_feature"].round(2),
+                avg_without_feature=lambda df_: df_["avg_without_feature"].round(2),
+                uplift_pct=lambda df_: df_["uplift_pct"].apply(format_percentage),
+            )
+            .rename(
+                columns={
+                    "feature": "Ingredient Group",
+                    "avg_with_feature": "Avg Popularity • Has Feature",
+                    "avg_without_feature": "Avg Popularity • No Feature",
+                    "uplift_pct": "Uplift %",
+                }
+            )
+            .head(10)
+        )
+        st.dataframe(ingredient_table)
     st.caption("Positive uplift indicates higher popularity when the feature is present.")
 
 with pricing_tab:
     st.subheader("Price Drivers by Feature & Category")
     st.write(
-        "Business Question: *Which ingredients/highlights make products more expensive by category?* Select a category to benchmark price deltas."
+        "Business Question: *Which ingredients/highlights make products more expensive by category?* Select a category to benchmark price uplifts."
     )
-    price_metric_cols = st.columns(2)
-    highlight_price = compute_price_delta(products_df, highlight_cols)
-    ingredient_price = compute_price_delta(products_df, ingredient_group_cols)
-    price_metric_cols[0].markdown("#### Highlight Price Delta (All Categories)")
-    price_metric_cols[0].dataframe(
-        highlight_price.head(15).assign(
-            feature=lambda df_: df_["feature"].apply(format_feature_name)
-        )
+    price_category_choice = st.selectbox(
+        "Select category to inspect",
+        options=category_options,
+        index=0,
+        key="pricing_category_selector",
     )
-    price_metric_cols[1].markdown("#### Ingredient Price Delta (All Categories)")
-    price_metric_cols[1].dataframe(ingredient_price.head(15))
-    st.markdown("### Category-Level Price Diagnostics")
-    selected_category = st.selectbox(
-        "Choose category",
-        options=sorted(products_df["primary_category"].dropna().unique()),
+    pricing_filtered_df = (
+        products_df
+        if price_category_choice == "All Categories"
+        else products_df[products_df["primary_category"] == price_category_choice]
     )
-    filtered_df = products_df[products_df["primary_category"] == selected_category]
-    if filtered_df.empty:
-        st.info("No products in the selected category.")
+    highlight_price = compute_price_delta(pricing_filtered_df, highlight_cols)
+    ingredient_price = compute_price_delta(pricing_filtered_df, ingredient_group_cols)
+
+    st.markdown("#### Highlight Price Uplift")
+    if highlight_price.empty:
+        st.info("Not enough highlight variation in this slice to compute uplift.")
     else:
-        top_highlights = compute_price_delta(filtered_df, highlight_cols).head(10)
-        top_ingredients = compute_price_delta(filtered_df, ingredient_group_cols).head(10)
-        cols = st.columns(2)
-        cols[0].write("Top highlight premiums in category")
-        cols[0].dataframe(
-            top_highlights.assign(feature=lambda df_: df_["feature"].apply(format_feature_name))
+        highlight_price_table = (
+            highlight_price.assign(
+                feature=lambda df_: df_["feature"].apply(format_feature_name),
+                avg_price_with=lambda df_: df_["avg_price_with"].round(2),
+                avg_price_without=lambda df_: df_["avg_price_without"].round(2),
+                uplift_pct=lambda df_: df_["uplift_pct"].apply(format_percentage),
+            )
+            .rename(
+                columns={
+                    "feature": "Highlight Feature",
+                    "avg_price_with": "Avg Price • Has Feature",
+                    "avg_price_without": "Avg Price • No Feature",
+                    "uplift_pct": "Uplift %",
+                }
+            )
+            .head(10)
         )
-        cols[1].write("Top ingredient premiums in category")
-        cols[1].dataframe(top_ingredients)
+        st.dataframe(highlight_price_table)
+
+    st.markdown("#### Ingredient Price Uplift")
+    if ingredient_price.empty:
+        st.info("Not enough ingredient signals in this slice to compute uplift.")
+    else:
+        ingredient_price_table = (
+            ingredient_price.assign(
+                feature=lambda df_: df_["feature"].apply(format_feature_name),
+                avg_price_with=lambda df_: df_["avg_price_with"].round(2),
+                avg_price_without=lambda df_: df_["avg_price_without"].round(2),
+                uplift_pct=lambda df_: df_["uplift_pct"].apply(format_percentage),
+            )
+            .rename(
+                columns={
+                    "feature": "Ingredient Group",
+                    "avg_price_with": "Avg Price • Has Feature",
+                    "avg_price_without": "Avg Price • No Feature",
+                    "uplift_pct": "Uplift %",
+                }
+            )
+            .head(10)
+        )
+        st.dataframe(ingredient_price_table)
 
 with benchmark_tab:
     st.subheader("Supporting Benchmarks & Data Context")
@@ -252,6 +386,9 @@ with benchmark_tab:
         .value_counts()
         .reset_index(name="product_count")
         .rename(columns={"index": "brand_name"})
+    )
+    brand_price = (
+        products_df.groupby("brand_name")["price_usd"].mean().sort_values(ascending=False).head(10).reset_index()
     )
     bench_cols = st.columns(2)
     bench_cols[0].plotly_chart(
@@ -264,16 +401,73 @@ with benchmark_tab:
         use_container_width=True,
     )
     bench_cols[1].plotly_chart(
+        px.bar(
+            brand_price,
+            x="brand_name",
+            y="price_usd",
+            title="Top 10 Brands by Average Price",
+            labels={"price_usd": "Average Price (USD)"},
+        ),
+        use_container_width=True,
+    )
+
+    st.markdown("### Price Tiers vs. Engagement")
+    price_bins = pd.qcut(products_df["price_usd"], q=[0, 0.25, 0.5, 0.75, 1], duplicates="drop")
+    price_labels = ["Budget", "Mass", "Prestige", "Luxury"][: len(price_bins.cat.categories)]
+    price_segments = price_bins.cat.rename_categories(price_labels)
+    id_col_benchmark = "product_id" if "product_id" in products_df.columns else "product_name"
+    price_segment_summary = (
+        products_df.assign(price_segment=price_segments)
+        .groupby("price_segment")
+        .agg(avg_loves=("loves_count", "mean"), products=(id_col_benchmark, "count"))
+        .reset_index()
+    )
+    st.plotly_chart(
+        px.scatter(
+            price_segment_summary,
+            x="price_segment",
+            y="avg_loves",
+            size="products",
+            title="Engagement by Price Segment",
+            labels={"avg_loves": "Average Loves", "price_segment": "Price Segment"},
+        ),
+        use_container_width=True,
+    )
+
+    st.markdown("### Price Spread by Category")
+    st.plotly_chart(
         px.box(
             products_df,
             x="primary_category",
             y="price_usd",
             points="suspectedoutliers",
-            title="Price spread by category",
+            title="Price Spread by Category",
         ),
         use_container_width=True,
     )
-    st.markdown("### Raw Data Preview")
-    st.dataframe(products_df.head(50))
-    st.caption("Export-ready data originates from the EDA pipeline cleaning functions in Section 1.")
+
+    st.markdown("### Feature Volume vs. Popularity")
+    feature_cols = st.columns(2)
+    feature_cols[0].plotly_chart(
+        px.box(
+            products_df,
+            x="popularity_proxy",
+            y="n_highlights",
+            color="popularity_proxy",
+            title="Highlight Count vs Popularity Proxy",
+            labels={"popularity_proxy": "Popularity Proxy", "n_highlights": "Number of Highlights"},
+        ),
+        use_container_width=True,
+    )
+    feature_cols[1].plotly_chart(
+        px.box(
+            products_df,
+            x="popularity_proxy",
+            y="n_ingredients",
+            color="popularity_proxy",
+            title="Ingredient Count vs Popularity Proxy",
+            labels={"popularity_proxy": "Popularity Proxy", "n_ingredients": "Number of Ingredients"},
+        ),
+        use_container_width=True,
+    )
 

@@ -25,7 +25,7 @@ for key in LOAD_KEYS:
     if key in st.session_state:
         globals()[key] = st.session_state[key]
 
-st.title("What Drives Popularity?")
+st.markdown('<h1 style="color:#c51b7d;">What Drives Popularity?</h1>', unsafe_allow_html=True)
 st.caption("SHAP-powered peek into how our gradient boosting model scores Sephora launches.")
 
 # Resolve globally provided artifacts
@@ -59,7 +59,7 @@ st.markdown(
     ### Intro
     This page breaks down **global feature importance** using SHAP for the Gradient Boosting model we trained to
     predict product popularity. SHAP (SHapley Additive exPlanations) lets us peek into the model's logic without
-    getting lost in the math, so we can explain to merchandisers why a SKU gets a high or low score.
+    getting lost in the math, so we can explain to the business why a product gets a high or low score.
     """
 )
 
@@ -84,17 +84,18 @@ else:
         title=f"Top {len(importance_df)} SHAP features",
         labels={"importance": "Mean |SHAP|", "feature": "Feature"},
         color="importance",
-        color_continuous_scale="Purples",
+        color_continuous_scale="RdPu",
     )
     st.plotly_chart(bar_fig, use_container_width=True)
-    with st.expander("What am I looking at?", expanded=False):
+    with st.expander("What are we looking at?", expanded=False):
         st.write(
-            "Each bar shows how much a feature moves the popularity prediction on average. Bigger bars = bigger impact."
+            "Each bar shows how much a feature moves the popularity prediction on average."      
+            " Bigger bars = bigger impact."
             " Think of it as the model's power ranking of signals."
         )
 
 st.markdown("---")
-st.markdown("## SHAP Summary Plot (Beeswarm)")
+st.markdown("## SHAP Summary Plot")
 show_top_only = st.checkbox("Only show the top N features from above", value=False)
 
 if shap_matrix is None or feature_frame is None:
@@ -118,7 +119,7 @@ else:
         plt.close(fig)
         st.markdown(
             "Smaller dots hug the center when impact is tiny; further from zero means the feature is really pushing"
-            " predictions. Colors show feature value (pink = high, blue = low)."
+            " predictions. Colors show feature value (pink = high,  blue = low)."
         )
 
 st.markdown("---")
@@ -146,14 +147,14 @@ if (
         x="Feature Value",
         y="SHAP Value",
         color="Feature Value",
-        color_continuous_scale="Plasma",
+        color_continuous_scale="Magma",
         title=f"SHAP dependence • {feature_choice}",
     )
     scatter_fig.add_hline(y=0, line_dash="dash", line_color="gray")
     st.plotly_chart(scatter_fig, use_container_width=True)
     st.write(
         "Each dot is a product from the test set. Left/right shows how the feature nudged the prediction down/up,"
-        " and the color hints at interactions (warm colors = higher raw feature value)."
+        " and the color hints at interactions."
     )
 else:
     st.info("Need SHAP values, feature data, and a valid feature selection to show the dependence plot.")
@@ -165,7 +166,6 @@ safe_feature_names = st.session_state.get("feature_names", [])
 st.markdown("---")
 st.markdown("## SHAP by Category")
 
-# Validate availability
 if not isinstance(shap_values_by_category, dict) or not isinstance(X_test_by_category, dict):
     st.info("Per-category SHAP values and feature matrices were not provided. Please make sure your model bundle includes shap_values_by_category and X_test_transformed_by_category.")
 else:
@@ -179,7 +179,7 @@ else:
     shap_subset = shap_values_by_category.get(chosen_category)
     X_subset = X_test_by_category.get(chosen_category)
 
-    # Minimum samples required
+    
     MIN_SAMPLES = 40
 
     if shap_subset is None or X_subset is None:
@@ -192,10 +192,10 @@ else:
         shap_array = np.array(shap_subset)
         X_cat_df = pd.DataFrame(X_subset, columns=safe_feature_names)
 
-        # Compute mean |SHAP| per feature
+        
         mean_abs = np.mean(np.abs(shap_array), axis=0)
 
-        # Get top 10 features
+       
         top_idx = np.argsort(mean_abs)[-10:][::-1]
         top_features = [safe_feature_names[i] for i in top_idx]
 
@@ -212,11 +212,11 @@ else:
             orientation="h",
             title=f"SHAP Feature Importance for {chosen_category}",
             color="Mean |SHAP|",
-            color_continuous_scale="Purples"
+            color_continuous_scale="RdPu",
         )
         st.plotly_chart(fig, use_container_width=True)
 
-        # Optional: SHAP summary plot for this category
+        
         st.subheader("SHAP Summary Plot (Category-Specific)")
         fig2 = plt.figure(figsize=(8, 6))
         try:
@@ -230,15 +230,3 @@ else:
             st.pyplot(fig2)
         finally:
             plt.close(fig2)
-st.markdown("---")
-st.markdown("## Business Insights")
-st.markdown(
-    """
-    - **Engagement wins**: review volume, loves, and scaled ratings consistently top the SHAP charts—fans voting with
-      hearts and reviews tells the model which launches are buzzing.
-    - **Formula claims help, but secondarily**: ingredient families and highlight tags matter when they support the
-      narrative (clean, dewy, brightening), yet they rarely outrank hard engagement data.
-    - **Price behaves nonlinearly**: SHAP shows both premium and value items can score high when other signals align,
-      so pricing strategy should pair with the right story rather than chasing a single "sweet spot."
-    """
-)

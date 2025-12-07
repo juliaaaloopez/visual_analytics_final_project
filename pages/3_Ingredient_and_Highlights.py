@@ -18,7 +18,7 @@ ingredient_cols = feature_info["ingredient_group_cols"]
 highlight_cols = feature_info["highlight_cols"]
 category_options = feature_info["category_options"]
 
-st.title("Ingredient & Highlight Tag Insights")
+st.markdown('<h1 style="color:#c51b7d;">Ingredient & Highlight Tag Insights</h1>', unsafe_allow_html=True)
 st.caption("Deep dive into formulation and marketing claims behind Sephora popularity scores.")
 
 tabs = st.tabs([
@@ -85,9 +85,9 @@ with tabs[0]:
     st.markdown(
         """
         ## Ingredient & Highlight Tag Insights
-        We originally expected ingredient families and highlight tags to dominate popularity, but the data shows
-        they're secondary to engagement metrics. Still, formulation and copy cues nudge performance, so this page
-        explores where they matter most.
+        We originally expected ingredient families and highlight tags to dominate product popularity, but the data shows
+        they're secondary to engagement metrics.  Still, ingredients and highlights play a supporting role, and this page
+        explores when and where they make a noticeable difference.
         """
     )
 
@@ -107,7 +107,7 @@ with tabs[1]:
             .reset_index(name="Share")
             .rename(columns={"index": "Ingredient"})
         )
-        ing_fig = px.bar(top_ing, x="Share", y="Ingredient", orientation="h", title="Top ingredient families")
+        ing_fig = px.bar(top_ing, x="Share", y="Ingredient", orientation="h", title="Top ingredient families",color_discrete_sequence=["#f098b0"]  )
         st.plotly_chart(ing_fig, use_container_width=True)
 
         pop_hist = px.histogram(
@@ -115,6 +115,7 @@ with tabs[1]:
             x="popularity_score",
             nbins=25,
             title="Popularity distribution within category",
+            color_discrete_sequence=["#ff4778"] ,
         )
         st.plotly_chart(pop_hist, use_container_width=True)
 
@@ -127,7 +128,7 @@ with tabs[1]:
             .reset_index(name="Share")
             .rename(columns={"index": "Tag"})
         )
-        tag_fig = px.bar(top_tags, x="Share", y="Tag", orientation="h", title="Top highlight tags")
+        tag_fig = px.bar(top_tags, x="Share", y="Tag", orientation="h", title="Top highlight tags", color_discrete_sequence=["#ad284c"]  )
         st.plotly_chart(tag_fig, use_container_width=True)
 
         metric_cols = ["price_usd", "rating", "reviews", "loves_count"]
@@ -192,6 +193,7 @@ with tabs[2]:
                 color="Group",
                 barmode="group",
                 title="Popular vs. non-popular share",
+                color_discrete_sequence=["#a20f4e", "#ff448f"]
             )
             comp_fig.update_yaxes(ticksuffix="%")
             st.plotly_chart(comp_fig, use_container_width=True)
@@ -199,7 +201,7 @@ with tabs[2]:
             st.info("Not enough data to contrast popularity rates for these ingredients.")
         with st.expander("Quick interpretation"):
             st.write(
-                "Look for big gaps between the purple bars—those indicate formulations that really tilt popularity."
+                "Wide gaps between the paired bars (hot and dark pink) indicate that the ingredient family has a strong association with popularity in this slice."
             )
 
 with tabs[3]:
@@ -250,10 +252,11 @@ with tabs[3]:
                 color="Group",
                 barmode="group",
                 title="Popularity score with vs. without tag",
+                color_discrete_sequence=["#761638", "#de1163"]
             )
             st.plotly_chart(pop_fig, use_container_width=True)
-        with st.expander("How to read this"):
-            st.write("Wide gaps between the paired bars mean the tag changes average popularity in that slice.")
+        with st.expander("Quick interpretation"):
+            st.write("Wide gaps between the paired bars (dark and hot pink) suggest the tag has a meaningful link to popularity in this context.")
 
 with tabs[4]:
     st.markdown("## Top Ingredient / Highlight Combinations")

@@ -27,8 +27,8 @@ if "price_usd" in df.columns:
 else:
     df["price_segment"] = "Unknown"
 
-st.title("EDA Dashboard")
-st.caption("Hands-on playground to poke at Sephora's popularity signals.")
+st.markdown('<h1 style="color:#c51b7d;">EDA Dashboard</h1>', unsafe_allow_html=True)
+st.caption("Hands-on playground to learn Sephora's popularity signals.")
 
 st.markdown("### Global filters")
 filter_cols = st.columns(2)
@@ -70,7 +70,7 @@ def render_popularity_section(data: pd.DataFrame) -> None:
         x="popularity_score",
         nbins=bin_count,
         title="Popularity score distribution",
-        color_discrete_sequence=["#7b5cd6"],
+        color_discrete_sequence=["#db82a2"],
     )
     st.plotly_chart(pop_hist, use_container_width=True)
 
@@ -81,6 +81,8 @@ def render_popularity_section(data: pd.DataFrame) -> None:
             x="primary_category",
             y="avg_popularity",
             title="Average popularity by category",
+            color="avg_popularity",               # key line
+            color_continuous_scale="Magma",
         )
         st.plotly_chart(cat_fig, use_container_width=True)
 
@@ -93,6 +95,7 @@ def render_popularity_section(data: pd.DataFrame) -> None:
             x="brand_name",
             y="avg_popularity",
             title="Top brands by avg popularity",
+            color_discrete_sequence=["#d25f7e"] 
         )
         brand_fig.update_layout(xaxis_tickangle=-45)
         st.plotly_chart(brand_fig, use_container_width=True)
@@ -147,6 +150,7 @@ def render_engagement_section(data: pd.DataFrame, brand_scope: pd.DataFrame) -> 
                 size="price_usd" if "price_usd" in scatter_df.columns else None,
                 hover_data=[col for col in ["product_name", "brand_name"] if col in scatter_df.columns],
                 title="Rating vs. Reviews",
+                color_continuous_scale=["#e582aa", "#D15F8D", "#dd4374", "#bf285d"]
             )
             st.plotly_chart(scatter_fig, use_container_width=True)
     else:
@@ -167,17 +171,26 @@ def render_engagement_section(data: pd.DataFrame, brand_scope: pd.DataFrame) -> 
             x="log_loves",
             nbins=log_love_bins,
             title="Log(loves count) distribution",
-            color_discrete_sequence=["#7b5cd6"],
+            color_discrete_sequence=["#d25f7e"] 
         )
         st.plotly_chart(log_loves_fig, use_container_width=True)
 
     if {"rating", "price_segment"}.issubset(price_filtered_df.columns):
+        price_colors = {
+            "Mass":    "#dc84ad",   # light pink
+            "Luxury":  "#dc538c",   # medium pink
+            "Prestige": "#c8255e",  # strong pink
+            "Budget":  "#98004c",   # dark pink
+        }
+
         violin_fig = px.box(
             price_filtered_df.dropna(subset=["rating"]),
             x="price_segment",
             y="rating",
             color="price_segment",
             title="Rating distribution by price segment",
+            color_discrete_map=price_colors,
+
         )
         st.plotly_chart(violin_fig, use_container_width=True)
 
@@ -193,7 +206,7 @@ def render_correlation_section(data: pd.DataFrame) -> None:
         corr_matrix,
         text_auto=True,
         aspect="auto",
-        color_continuous_scale="Purples",
+        color_continuous_scale="RdPu",
         title="Correlation heatmap",
     )
     st.plotly_chart(heatmap, use_container_width=True)
@@ -205,7 +218,7 @@ def render_correlation_section(data: pd.DataFrame) -> None:
             pair = top_pair.index[0]
             value = top_pair.values[0]
             st.write(
-                f"Strongest swing right now: **{pair[0]} vs {pair[1]}** at {value:.2f}."
+                f"Strongest swing right now: **{pair[0]}**  vs  **{pair[1]}** with value   {value:.2f}"
             )
         else:
             st.write("Not enough variance to call out correlations yet.")
@@ -227,7 +240,7 @@ def render_category_section(data: pd.DataFrame, brand_scope: pd.DataFrame) -> No
             x="popularity_score",
             nbins=30,
             title=f"Popularity distribution • {deep_dive_choice}",
-            color_discrete_sequence=["#f25f5c"],
+            color_discrete_sequence=["#f098b0"] 
         )
         st.plotly_chart(cat_pop_fig, use_container_width=True)
 
@@ -255,6 +268,9 @@ def render_category_section(data: pd.DataFrame, brand_scope: pd.DataFrame) -> No
             orientation="h",
             title="Top ingredient families",
             labels={"value": "Count"},
+            color_discrete_sequence=["#d25f7e"] 
+            
+
         )
         ing_col.plotly_chart(ing_fig, use_container_width=True)
     else:
@@ -267,6 +283,7 @@ def render_category_section(data: pd.DataFrame, brand_scope: pd.DataFrame) -> No
             orientation="h",
             title="Top highlight tags",
             labels={"value": "Count"},
+            color_discrete_sequence=["#fd4c7b"] 
         )
         tag_col.plotly_chart(tag_fig, use_container_width=True)
     else:

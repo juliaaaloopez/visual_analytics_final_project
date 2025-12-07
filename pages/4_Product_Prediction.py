@@ -88,13 +88,14 @@ def main():
     highlight_cols = feature_info["highlight_cols"]
     ingredient_cols = feature_info["ingredient_group_cols"]
 
-    st.title("Product Prediction")
-    st.caption("Experiment with merchandising knobs, predict if a concept SKU will be popular, and inspect drivers.")
+    st.markdown('<h1 style="color:#c51b7d;">Product Prediction</h1>', unsafe_allow_html=True)
+
+    st.caption("Experiment with different product characteristics, predict if it will be popular and inspect drivers.")
 
     tabs = st.tabs(["Predict Product", "Conclusions"])
 
     with tabs[0]:
-        st.markdown("### Predict a New Product's Popularity")
+        st.markdown("### Predict a New Product Popularity")
         brand_options = sorted(df["brand_name"].dropna().unique())
         template_row = df.head(1).copy()
         for col in highlight_cols + ingredient_cols:
@@ -149,7 +150,7 @@ def main():
                 help="Pick the big ingredient stories you want to emphasize.",
             )
 
-            submitted = st.form_submit_button("Predict Popularity")
+            submitted = st.form_submit_button("Predict Popularity! ")
 
         if submitted:
             if popularity_model is None:
@@ -208,7 +209,7 @@ def main():
                         orientation="h",
                         title="Top feature contributions",
                         color="SHAP Value",
-                        color_continuous_scale="RdBu",
+                        color_continuous_scale="RdPu",
                     )
                     shap_fig.add_vline(x=0, line_dash="dash", line_color="gray")
                     st.plotly_chart(shap_fig, use_container_width=True)
@@ -218,9 +219,26 @@ def main():
         st.markdown("### Conclusions")
         st.markdown(
             """
-            - Engagement metrics (reviews, loves, and rating) remain the dominant levers for predicted popularity.
-            - Formulation and highlight choices still matter: certain ingredient/tag bundles consistently add lift.
-            - Price sits in a nonlinear zone—pairing the right copy with either prestige or value positioning can win.
+            📉 **Our initial hypothesis didn’t fully hold.**
+            We expected ingredient families and highlight tags to be major popularity drivers, but SHAP shows they play a secondary role compared to engagement metrics (reviews, loves, rating). They still help the model, just not as much as we originally thought.
+
+            👀 **Popularity behaves like a visibility + social-proof problem.**
+            Products succeed when they accumulate strong customer interaction signals. High review volume, strong ratings, and repeated engagement are the main levers influencing predicted popularity.
+
+            🔗 **Ingredients and highlights matter most in combinations.**
+            Individual ingredient families rarely shift outcomes, but pairs and trios (e.g., Humectants + Antioxidants + Mineral Sunscreen) consistently show uplift. Customers respond to coherent benefit stories, not isolated claims.
+
+            📊 **Popularity varies meaningfully by category.**
+            Makeup and Mini Size products outperform other groups, likely due to faster trend cycles and lower commitment barriers. Other categories, like Fragrance or Bath & Body, follow different dynamics, reinforcing category-specific popularity behavior.
+
+            💲 **Price shows a nonlinear effect.**
+            Both high-end and budget items can perform well when paired with the right engagement and messaging signals. Success isn’t about being “cheap vs. premium,” but about positioning.
+
+            🏷️ **Operational and merchandising signals matter.**
+            Features such as online-only, new, and child_count (product variants like colors) appear among the strongest SHAP contributors. This suggests popularity is influenced not just by product content but also by how and where the product is launched.
+
+            🧠 **Overall, the model’s insights align with real consumer behavior.**
+            Customers amplify products with strong social proof, clear positioning, and relevant benefit combinations. Ingredients help, but engagement drives.
             """
         )
 

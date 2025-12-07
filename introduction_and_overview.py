@@ -9,11 +9,6 @@ from app_utils import (
     preprocess_feature_lists,
 )
 
-st.set_page_config(
-    page_title="Sephora Product Insights",
-    layout="wide",
-    initial_sidebar_state="expanded",
-)
 
 products_df = load_products()
 ing_group_df = load_ingredient_groups()
@@ -52,33 +47,34 @@ if popular_share is not None:
         }
     )
 
-st.title("Introduction & Overview")
-st.caption("Executive-facing analytics connecting catalog features, machine learning, and explainable insights.")
+st.markdown('<h1 style="color:#c51b7d;"> Introduction & Overview</h1>', unsafe_allow_html=True)
+
+st.caption("Business driven analytics connecting beauty catalog features, machine learning model, and explainable insights.")
 
 st.header("1. Project Overview")
 st.write(
     """
     This initiative blends Sephora's catalog intelligence with supervised machine learning to understand what
-    differentiates breakout launches. We focus on explainable signals—so merchandising, marketing, and suppliers
-    can act on transparent drivers rather than opaque scores.
+    differentiates promising launches. We focus on explainable signals so merchandising, marketing, and suppliers
+    can act on transparent drivers that we will explain.
     """
 )
 
 st.header("2. Dataset Description")
 st.markdown(
     f"""
-    - **Source**: Kaggle Sephora products dataset enriched with in-house feature engineering.
+    - **Source**: Kaggle Sephora (beauty brand/shop) products dataset enriched with feature engineering.
     - **Footprint**: {num_products:,} products across {num_brands:,} brands and {num_categories:,} primary categories.
     """
 )
 st.markdown(
     """
     **Feature groups**
-    - Engagement metrics: loves_count, rating signal, verified reviews volume.
-    - Price and value: price_usd, kit sizing, price tiers.
-    - Ingredient families: mapped groupings from parsed ingredient statements.
-    - Highlight tags: Sephora marketing copy converted into binary product claims.
-    - Category context: primary/secondary/tertiary taxonomy and online-only flags.
+    - **Engagement metrics**: loves_count, ratings, verified reviews volume.
+    - **Price and value**: price_usd, kit sizing, price tiers.
+    - **Ingredient families**: mapped groupings from parsed ingredient statements.
+    - **Highlight tags**: Sephora marketing copy converted into binary product claims.
+    - **Category context**: primary/secondary/tertiary taxonomy and online-only flags.
     """
 )
 st.dataframe(pd.DataFrame(stats_rows), use_container_width=True)
@@ -92,10 +88,11 @@ with st.expander("Data quality snapshot"):
 st.header("3. Defining Product Popularity")
 st.write(
     """
-    The continuous **popularity_score** is a weighted ensemble of normalized loves, ratings, and review depth,
+    The continuous **popularity_score** is a weighted combination of normalized loves, ratings, and review depth,
     giving higher influence to signals with greater variance. We convert that score into a binary proxy where
-    the top 30% (`popularity_proxy = 1`) represent popular SKUs. This percentile cut (≈{popularity_cutoff_text} score)
-    captures both velocity and quality sentiment, making it a pragmatic dependent variable for explainable ML.
+    the top 30% (`popularity_proxy = 1`) represent popular products. This top-30% cutoff gives us a practical label for
+    what counts as a ‘popular’ product. It captures both how much attention a product gets and how positively people 
+    react to it, which makes it a useful target for our model.”
     """
 )
 
@@ -103,7 +100,7 @@ st.header("4. Project Motivation")
 st.write(
     """
     Sephora's merchandising teams need repeatable playbooks to brief vendors, curate exclusives, and manage
-    launch investments before hard sales data accrues. Our hypothesis is that specific ingredient families and
+    new launch investments. Our initial hypothesis is that specific ingredient families and
     marketing highlights materially shift popularity odds, so understanding those signals accelerates assortment
     and go-to-market decisions.
     """
@@ -112,33 +109,31 @@ st.write(
 st.header("5. Business Questions")
 st.markdown(
     """
-    - **What drives popularity?** Identify the quantitative levers with the strongest uplift.
-    - **Can ingredients or tags explain popularity?** Traceable explainability for formulation and marketing teams.
-    - **How do categories differ?** Surface category-level nuances that warrant bespoke strategies.
-    - Secondary: Which formulation traits (clean, vegan, fragrance-free, etc.) act as leading indicators?
+    - **What features really drive popularity?** Identify the characteristics that provide strong uplifts.
+    - **Can ingredients and highlights explain popularity?** Make an exploration of these feature groups.
+    - **How do features influence in the popularity of each category?** Study category-specific trends.
     """
 )
 
 st.header("6. What This Streamlit App Provides")
 st.markdown(
     """
-    - Exploratory data analysis widgets to slice the catalog on demand.
+    - Exploratory data analysis widgets to slice the Sephora catalog.
     - Explainable machine-learning insights (feature importance, SHAP-style uplift views).
-    - Category and pricing benchmarks for cross-portfolio comparisons.
-    - A lightweight prediction sandbox to pressure-test new product concepts.
+    - A prediction page to simulate new product concepts and see predicted popularity outcomes.
     """
 )
 
 st.markdown("---")
-st.subheader("Interactive catalog probe")
+st.subheader("Interactive catalog preview")
 left, right = st.columns(2)
 category_choice = left.selectbox(
-    "Filter by primary category",
+    "Filter by primary category or choose all",
     options=["All Categories"] + sorted(products_df["primary_category"].dropna().unique()),
     index=0,
 )
 brand_subset = right.multiselect(
-    "Highlight specific brands",
+    "Filter by specific brands or choose all",
     options=sorted(products_df["brand_name"].unique()),
     default=[],
 )
@@ -178,5 +173,6 @@ popularity_fig = px.histogram(
     x="popularity_score",
     nbins=40,
     title="Distribution of Popularity Score",
+    color_discrete_sequence=["#d21894"] 
 )
 st.plotly_chart(popularity_fig, use_container_width=True)

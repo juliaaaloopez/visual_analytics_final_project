@@ -60,7 +60,7 @@ def format_feature_label(name: str) -> str:
     return name.replace("tag_", "").replace("has_", "").replace("_", " ").title()
 
 def render_popularity_section(data: pd.DataFrame) -> None:
-    st.subheader("1. Popularity Overview")
+    st.subheader("Popularity Overview")
     if data.empty or "popularity_score" not in data.columns:
         st.info("Need popularity_score values to render this section.")
         return
@@ -98,7 +98,7 @@ def render_popularity_section(data: pd.DataFrame) -> None:
         st.plotly_chart(brand_fig, use_container_width=True)
 
 def render_engagement_section(data: pd.DataFrame, brand_scope: pd.DataFrame) -> None:
-    st.subheader("2. Engagement Metrics")
+    st.subheader("Engagement Metrics")
     if data.empty:
         st.info("No rows available for this slice.")
         return
@@ -173,7 +173,7 @@ def render_engagement_section(data: pd.DataFrame, brand_scope: pd.DataFrame) -> 
         st.plotly_chart(violin_fig, use_container_width=True)
 
 def render_correlation_section(data: pd.DataFrame) -> None:
-    st.subheader("3. Price / Rating / Reviews Relationship")
+    st.subheader("Price / Rating / Reviews Relationship")
     metric_cols = [col for col in ["price_usd", "rating", "reviews", "loves_count"] if col in data.columns]
     if len(metric_cols) < 2 or data.empty:
         st.info("Need at least two of price, rating, reviews, loves_count to compute correlations.")
@@ -202,7 +202,7 @@ def render_correlation_section(data: pd.DataFrame) -> None:
             st.write("Not enough variance to call out correlations yet.")
 
 def render_ingredient_section(data: pd.DataFrame) -> None:
-    st.subheader("4. Ingredient & Highlight Tag Exploration")
+    st.subheader(" Ingredient & Highlight Tag Exploration")
     if data.empty:
         st.info("No rows available for this slice.")
         return
@@ -269,7 +269,7 @@ def render_ingredient_section(data: pd.DataFrame) -> None:
         st.info("No highlight tags available to profile.")
 
 def render_category_section(data: pd.DataFrame, brand_scope: pd.DataFrame) -> None:
-    st.subheader("5. Category Deep Dive")
+    st.subheader(" Category Deep Dive")
     dive_categories = sorted(brand_scope["primary_category"].dropna().unique().tolist())
     if not dive_categories:
         st.info("No categories left after filtering.")

@@ -47,7 +47,7 @@ feature_names = (
 
 st.markdown(
     """
-    ### 1. Intro
+    ### Intro
     This page breaks down **global feature importance** using SHAP for the Gradient Boosting model we trained to
     predict product popularity. SHAP (SHapley Additive exPlanations) lets us peek into the model's logic without
     getting lost in the math, so we can explain to merchandisers why a SKU gets a high or low score.
@@ -55,7 +55,7 @@ st.markdown(
 )
 
 st.markdown("---")
-st.markdown("## 2. Feature Importance (Top SHAP Features)")
+st.markdown("## Feature Importance (Top SHAP Features)")
 top_n = st.slider("Show top N features", min_value=5, max_value=30, value=10, step=1)
 
 if shap_matrix is None or not feature_names:
@@ -85,7 +85,7 @@ else:
         )
 
 st.markdown("---")
-st.markdown("## 3. SHAP Summary Plot (Beeswarm)")
+st.markdown("## SHAP Summary Plot (Beeswarm)")
 show_top_only = st.checkbox("Only show the top N features from above", value=False)
 
 if shap_matrix is None or feature_frame is None:
@@ -113,7 +113,7 @@ else:
         )
 
 st.markdown("---")
-st.markdown("## 4. Interactive Explanation")
+st.markdown("## Interactive Explanation")
 feature_choice = st.selectbox(
     "Pick a feature to inspect",
     options=feature_names if feature_names else ["No features available"],
@@ -150,7 +150,7 @@ else:
     st.info("Need SHAP values, feature data, and a valid feature selection to show the dependence plot.")
 
 st.markdown("---")
-st.markdown("## 5. Business Insights")
+st.markdown("## Business Insights")
 st.markdown(
     """
     - **Engagement wins**: review volume, loves, and scaled ratings consistently top the SHAP charts—fans voting with

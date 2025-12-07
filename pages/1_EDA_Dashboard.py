@@ -153,14 +153,23 @@ def render_engagement_section(data: pd.DataFrame, brand_scope: pd.DataFrame) -> 
         st.info("Need both rating and reviews columns to plot the scatter chart.")
 
     if "loves_count" in price_filtered_df.columns:
-        love_bins = st.slider("Loves count bins", min_value=10, max_value=80, value=30, step=5, key="love_bins")
-        loves_fig = px.histogram(
-            price_filtered_df,
-            x="loves_count",
-            nbins=love_bins,
-            title="Loves count distribution",
+        log_love_bins = st.slider(
+            "Log-loves bins",
+            min_value=10,
+            max_value=80,
+            value=30,
+            step=5,
+            key="log_love_bins",
         )
-        st.plotly_chart(loves_fig, use_container_width=True)
+        st.caption("Log scale applied to reduce the skew from viral products.")
+        log_loves_fig = px.histogram(
+            price_filtered_df,
+            x="log_loves",
+            nbins=log_love_bins,
+            title="Log(loves count) distribution",
+            color_discrete_sequence=["#7b5cd6"],
+        )
+        st.plotly_chart(log_loves_fig, use_container_width=True)
 
     if {"rating", "price_segment"}.issubset(price_filtered_df.columns):
         violin_fig = px.box(
@@ -200,73 +209,6 @@ def render_correlation_section(data: pd.DataFrame) -> None:
             )
         else:
             st.write("Not enough variance to call out correlations yet.")
-
-def render_ingredient_section(data: pd.DataFrame) -> None:
-    st.subheader(" Ingredient & Highlight Tag Exploration")
-    if data.empty:
-        st.info("No rows available for this slice.")
-        return
-    default_ingredients = ingredient_cols[:5]
-    selected_ingredients = st.multiselect(
-        "Ingredient families", options=ingredient_cols, default=default_ingredients, key="ingredient_multi"
-    )
-    if selected_ingredients:
-        ing_counts, ing_popularity = [], []
-        for col in selected_ingredients:
-            if col not in data.columns:
-                continue
-            total = int(data[col].sum())
-            share = (total / len(data)) * 100 if len(data) else 0
-            ing_counts.append({"Ingredient": format_feature_label(col), "Products": total, "Share %": share})
-            avg_pop = data.loc[data[col] == 1, "popularity_score"].mean()
-            ing_popularity.append({"Ingredient": format_feature_label(col), "Avg Popularity": avg_pop})
-        if ing_counts:
-            st.dataframe(pd.DataFrame(ing_counts).set_index("Ingredient"))
-        if ing_popularity:
-            pop_fig = px.bar(
-                pd.DataFrame(ing_popularity).dropna(),
-                x="Ingredient",
-                y="Avg Popularity",
-                title="Average popularity when ingredient shows up",
-            )
-            st.plotly_chart(pop_fig, use_container_width=True)
-    else:
-        st.info("Pick one or more ingredient families to see counts and lift.")
-
-    selected_tag = st.selectbox(
-        "Highlight tag focus",
-        options=highlight_cols if highlight_cols else ["No tags available"],
-        key="tag_focus",
-    )
-    if selected_tag in data.columns:
-        freq = data[selected_tag].mean() * 100 if len(data) else 0
-        st.metric("Tag frequency in current slice", f"{freq:.1f}%")
-        if highlight_cols:
-            top_tags = (
-                data[highlight_cols]
-                .mean()
-                .sort_values(ascending=False)
-                .head(5)
-                .index.tolist()
-            )
-            if top_tags and "primary_category" in data.columns:
-                tag_long = (
-                    data.groupby("primary_category")[top_tags]
-                    .mean()
-                    .reset_index()
-                    .melt(id_vars="primary_category", value_name="share", var_name="tag")
-                )
-                tag_fig = px.bar(
-                    tag_long,
-                    x="primary_category",
-                    y="share",
-                    color="tag",
-                    barmode="group",
-                    title="Tag frequency by category",
-                )
-                st.plotly_chart(tag_fig, use_container_width=True)
-    else:
-        st.info("No highlight tags available to profile.")
 
 def render_category_section(data: pd.DataFrame, brand_scope: pd.DataFrame) -> None:
     st.subheader(" Category Deep Dive")
@@ -347,8 +289,7 @@ sections = [
     ("1. Popularity Overview", "pop", render_popularity_section),
     ("2. Engagement Metrics", "engagement", render_engagement_section),
     ("3. Price / Rating / Reviews", "correlation", render_correlation_section),
-    ("4. Ingredient & Highlight Tags", "ingredients", render_ingredient_section),
-    ("5. Category Deep Dive", "category", render_category_section),
+    ("4. Category Deep Dive", "category", render_category_section),
 ]
 
 if "eda_active_section" not in st.session_state:

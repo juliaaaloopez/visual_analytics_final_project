@@ -12,7 +12,16 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import shap
 
-for key in ["explainer","shap_values","X_test_transformed","feature_names"]:
+LOAD_KEYS = [
+    "explainer",
+    "shap_values",                      # global SHAP
+    "X_test_transformed",               # global X-test
+    "feature_names",
+    "shap_values_by_category",          # NEW
+    "X_test_transformed_by_category",   # NEW
+]
+
+for key in LOAD_KEYS:
     if key in st.session_state:
         globals()[key] = st.session_state[key]
 
@@ -149,6 +158,78 @@ if (
 else:
     st.info("Need SHAP values, feature data, and a valid feature selection to show the dependence plot.")
 
+shap_values_by_category = st.session_state.get("shap_values_by_category")
+X_test_by_category = st.session_state.get("X_test_transformed_by_category")
+safe_feature_names = st.session_state.get("feature_names", [])
+
+st.markdown("---")
+st.markdown("## SHAP by Category")
+
+# Validate availability
+if not isinstance(shap_values_by_category, dict) or not isinstance(X_test_by_category, dict):
+    st.info("Per-category SHAP values and feature matrices were not provided. Please make sure your model bundle includes shap_values_by_category and X_test_transformed_by_category.")
+else:
+    category_options = sorted(shap_values_by_category.keys())
+    chosen_category = st.selectbox(
+        "Select category for SHAP explanation",
+        options=category_options,
+        key="shap_category_dropdown",
+    )
+
+    shap_subset = shap_values_by_category.get(chosen_category)
+    X_subset = X_test_by_category.get(chosen_category)
+
+    # Minimum samples required
+    MIN_SAMPLES = 40
+
+    if shap_subset is None or X_subset is None:
+        st.warning("Category SHAP data missing. Did you save it in your model bundle?")
+    elif len(X_subset) < MIN_SAMPLES:
+        st.warning(f"Not enough samples for reliable SHAP in category '{chosen_category}'. Need at least {MIN_SAMPLES}.")
+    else:
+        st.subheader(f"Top 10 SHAP Features • {chosen_category}")
+
+        shap_array = np.array(shap_subset)
+        X_cat_df = pd.DataFrame(X_subset, columns=safe_feature_names)
+
+        # Compute mean |SHAP| per feature
+        mean_abs = np.mean(np.abs(shap_array), axis=0)
+
+        # Get top 10 features
+        top_idx = np.argsort(mean_abs)[-10:][::-1]
+        top_features = [safe_feature_names[i] for i in top_idx]
+
+        shap_df = pd.DataFrame({
+            "Feature": top_features,
+            "Mean |SHAP|": mean_abs[top_idx]
+        }).sort_values("Mean |SHAP|")
+
+        import plotly.express as px
+        fig = px.bar(
+            shap_df,
+            x="Mean |SHAP|",
+            y="Feature",
+            orientation="h",
+            title=f"SHAP Feature Importance for {chosen_category}",
+            color="Mean |SHAP|",
+            color_continuous_scale="Purples"
+        )
+        st.plotly_chart(fig, use_container_width=True)
+
+        # Optional: SHAP summary plot for this category
+        st.subheader("SHAP Summary Plot (Category-Specific)")
+        fig2 = plt.figure(figsize=(8, 6))
+        try:
+            shap.summary_plot(
+                shap_array[:, top_idx],
+                X_cat_df[top_features],
+                feature_names=top_features,
+                show=False,
+                max_display=10
+            )
+            st.pyplot(fig2)
+        finally:
+            plt.close(fig2)
 st.markdown("---")
 st.markdown("## Business Insights")
 st.markdown(

@@ -12,11 +12,20 @@ INGREDIENT_FEATURES_PATH = DATA_DIR / "ingredient_features_selected.csv"
 
 if "shap_values" not in st.session_state:
     model_bundle = joblib.load("models/popularity_bundle.pkl")
+    
     st.session_state["popularity_model"] = model_bundle["model"]
     st.session_state["explainer"] = model_bundle["explainer"]
     st.session_state["shap_values"] = model_bundle["shap_values"]
     st.session_state["feature_names"] = model_bundle["feature_names"]
     st.session_state["X_test_transformed"] = model_bundle["X_test_transformed"]
+
+    # NEW: load category-level SHAP dictionaries
+    if "shap_values_by_category" in model_bundle:
+        st.session_state["shap_values_by_category"] = model_bundle["shap_values_by_category"]
+
+    if "X_test_transformed_by_category" in model_bundle:
+        st.session_state["X_test_transformed_by_category"] = model_bundle["X_test_transformed_by_category"]
+
 
 
 @st.cache_data

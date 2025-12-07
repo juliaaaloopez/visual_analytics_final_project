@@ -1,7 +1,7 @@
-import numpy as np
 import pandas as pd
 import plotly.express as px
 import streamlit as st
+from itertools import combinations
 
 from app_utils import (
     format_feature_name,
@@ -18,21 +18,68 @@ ingredient_cols = feature_info["ingredient_group_cols"]
 highlight_cols = feature_info["highlight_cols"]
 category_options = feature_info["category_options"]
 
-
-def get_artifact(name: str):
-    return st.session_state.get(name, globals().get(name))
-
 st.title("Ingredient & Highlight Tag Insights")
 st.caption("Deep dive into formulation and marketing claims behind Sephora popularity scores.")
 
 tabs = st.tabs([
     "Intro",
+    "Category Insights",
     "Ingredient Explorer",
     "Highlight Explorer",
-    "Category Insights",
-    "SHAP by Category",
-    "Takeaways",
+    "Top Ingredient / Highlight Combinations",
 ])
+
+
+def compute_combo_effects(
+    data: pd.DataFrame,
+    candidate_cols,
+    top_limit: int = 12,
+    min_support: int = 8,
+):
+    if data.empty or "popularity_score" not in data.columns:
+        return pd.DataFrame(columns=["Combo Size", "Combination", "Products", "Avg Popularity", "Uplift vs Avg"])
+
+    valid_cols = [col for col in candidate_cols if col in data.columns]
+    if not valid_cols:
+        return pd.DataFrame(columns=["Combo Size", "Combination", "Products", "Avg Popularity", "Uplift vs Avg"])
+
+    col_counts = (
+        data[valid_cols]
+        .sum()
+        .sort_values(ascending=False)
+    )
+    top_cols = col_counts[col_counts >= min_support].head(top_limit).index.tolist()
+    if not top_cols:
+        return pd.DataFrame(columns=["Combo Size", "Combination", "Products", "Avg Popularity", "Uplift vs Avg"])
+
+    baseline = data["popularity_score"].mean()
+    rows = []
+    for size in (2, 3):
+        if len(top_cols) < size:
+            continue
+        for combo in combinations(top_cols, size):
+            mask = data[list(combo)].all(axis=1)
+            support = int(mask.sum())
+            if support < min_support:
+                continue
+            avg_pop = data.loc[mask, "popularity_score"].mean()
+            uplift = avg_pop - baseline
+            rows.append({
+                "Combo Size": size,
+                "Combination": " + ".join(format_feature_name(col) for col in combo),
+                "Products": support,
+                "Avg Popularity": round(float(avg_pop), 2),
+                "Uplift vs Avg": round(float(uplift), 2),
+            })
+
+    if not rows:
+        return pd.DataFrame(columns=["Combo Size", "Combination", "Products", "Avg Popularity", "Uplift vs Avg"])
+
+    return (
+        pd.DataFrame(rows)
+        .sort_values(["Combo Size", "Avg Popularity"], ascending=[True, False])
+        .reset_index(drop=True)
+    )
 
 with tabs[0]:
     st.markdown(
@@ -45,6 +92,54 @@ with tabs[0]:
     )
 
 with tabs[1]:
+    st.markdown("## Category-Level Insights")
+    cat_choice = st.selectbox("Select a category", options=category_options, index=1)
+    cat_df = df if cat_choice == "All Categories" else df[df["primary_category"] == cat_choice]
+    if cat_df.empty:
+        st.warning("No records found for this category.")
+    else:
+        top_ing = (
+            cat_df[ingredient_cols]
+            .mean()
+            .sort_values(ascending=False)
+            .head(10)
+            .rename(format_feature_name)
+            .reset_index(name="Share")
+            .rename(columns={"index": "Ingredient"})
+        )
+        ing_fig = px.bar(top_ing, x="Share", y="Ingredient", orientation="h", title="Top ingredient families")
+        st.plotly_chart(ing_fig, use_container_width=True)
+
+        pop_hist = px.histogram(
+            cat_df,
+            x="popularity_score",
+            nbins=25,
+            title="Popularity distribution within category",
+        )
+        st.plotly_chart(pop_hist, use_container_width=True)
+
+        top_tags = (
+            cat_df[highlight_cols]
+            .mean()
+            .sort_values(ascending=False)
+            .head(10)
+            .rename(format_feature_name)
+            .reset_index(name="Share")
+            .rename(columns={"index": "Tag"})
+        )
+        tag_fig = px.bar(top_tags, x="Share", y="Tag", orientation="h", title="Top highlight tags")
+        st.plotly_chart(tag_fig, use_container_width=True)
+
+        metric_cols = ["price_usd", "rating", "reviews", "loves_count"]
+        metric_cols = [col for col in metric_cols if col in cat_df.columns]
+        if metric_cols:
+            metrics = st.columns(len(metric_cols))
+            for idx, metric in enumerate(metric_cols):
+                value = cat_df[metric].mean()
+                formatted = f"${value:,.0f}" if metric == "price_usd" else f"{value:,.1f}" if metric == "rating" else f"{value:,.0f}"
+                metrics[idx].metric(metric.replace("_", " ").title(), formatted)
+
+with tabs[2]:
     st.markdown("## Ingredient Family Popularity Explorer")
     default_ingredients = ingredient_cols[:5]
     selected_ingredients = st.multiselect(
@@ -107,7 +202,7 @@ with tabs[1]:
                 "Look for big gaps between the purple bars—those indicate formulations that really tilt popularity."
             )
 
-with tabs[2]:
+with tabs[3]:
     st.markdown("## Highlight Tag Explorer")
     selected_tags = st.multiselect(
         "Choose highlight tags",
@@ -160,110 +255,48 @@ with tabs[2]:
         with st.expander("How to read this"):
             st.write("Wide gaps between the paired bars mean the tag changes average popularity in that slice.")
 
-with tabs[3]:
-    st.markdown("## Category-Level Insights")
-    cat_choice = st.selectbox("Select a category", options=category_options, index=1)
-    cat_df = df if cat_choice == "All Categories" else df[df["primary_category"] == cat_choice]
-    if cat_df.empty:
-        st.warning("No records found for this category.")
-    else:
-        top_ing = (
-            cat_df[ingredient_cols]
-            .mean()
-            .sort_values(ascending=False)
-            .head(10)
-            .rename(format_feature_name)
-            .reset_index(name="Share")
-            .rename(columns={"index": "Ingredient"})
-        )
-        ing_fig = px.bar(top_ing, x="Share", y="Ingredient", orientation="h", title="Top ingredient families")
-        st.plotly_chart(ing_fig, use_container_width=True)
-
-        pop_hist = px.histogram(
-            cat_df,
-            x="popularity_score",
-            nbins=25,
-            title="Popularity distribution within category",
-        )
-        st.plotly_chart(pop_hist, use_container_width=True)
-
-        top_tags = (
-            cat_df[highlight_cols]
-            .mean()
-            .sort_values(ascending=False)
-            .head(10)
-            .rename(format_feature_name)
-            .reset_index(name="Share")
-            .rename(columns={"index": "Tag"})
-        )
-        tag_fig = px.bar(top_tags, x="Share", y="Tag", orientation="h", title="Top highlight tags")
-        st.plotly_chart(tag_fig, use_container_width=True)
-
-        metric_cols = ["price_usd", "rating", "reviews", "loves_count"]
-        metric_cols = [col for col in metric_cols if col in cat_df.columns]
-        if metric_cols:
-            metrics = st.columns(len(metric_cols))
-            for idx, metric in enumerate(metric_cols):
-                value = cat_df[metric].mean()
-                formatted = f"${value:,.0f}" if metric == "price_usd" else f"{value:,.1f}" if metric == "rating" else f"{value:,.0f}"
-                metrics[idx].metric(metric.replace("_", " ").title(), formatted)
-
 with tabs[4]:
-    st.markdown("## SHAP Explainability by Category")
-    shap_category = st.selectbox("Choose category for SHAP view", options=category_options, index=1)
-    min_samples = st.slider("Minimum samples required", 20, 200, 50, 10)
-
-    shap_data = None
-    feature_matrix = None
-    feature_names = get_artifact("feature_names")
-    shap_source = get_artifact("shap_values")
-    X_transformed = get_artifact("X_test_transformed")
-
-    if isinstance(shap_source, dict):
-        shap_data = shap_source.get(shap_category)
-    else:
-        shap_data = shap_source
-
-    if isinstance(X_transformed, dict):
-        feature_matrix = X_transformed.get(shap_category)
-    else:
-        feature_matrix = X_transformed
-
-    if (
-        shap_data is None
-        or feature_matrix is None
-        or feature_names is None
-        or len(feature_matrix) < min_samples
-    ):
-        st.warning("Not enough samples for reliable SHAP interpretation.")
-    else:
-        shap_array = np.array(shap_data)
-        mean_abs = np.mean(np.abs(shap_array), axis=0)
-        top_idx = np.argsort(mean_abs)[-5:][::-1]
-        top_features = [feature_names[i] for i in top_idx]
-        shap_df = pd.DataFrame({
-            "Feature": [format_feature_name(feat) for feat in top_features],
-            "Mean |SHAP|": mean_abs[top_idx],
-        })
-        shap_fig = px.bar(
-            shap_df,
-            x="Mean |SHAP|",
-            y="Feature",
-            orientation="h",
-            title=f"Top SHAP drivers • {shap_category}",
-        )
-        st.plotly_chart(shap_fig, use_container_width=True)
-        st.write(
-            "These are the signals the category-level model leans on most—larger bars mean bigger sway on predicted"
-            " popularity."
-        )
-
-with tabs[5]:
-    st.markdown("## Takeaways")
-    st.markdown(
-        """
-        - Ingredient impact shifts by category: skincare reacts to humectants while makeup leans on finish claims.
-        - Highlight tags rarely beat engagement metrics, but they provide the narrative glue for high-scoring launches.
-        - The original hypothesis was partly right—formulations matter—but only when paired with strong social proof.
-        """
+    st.markdown("## Top Ingredient / Highlight Combinations")
+    filter_cols = st.columns(3)
+    combo_category = filter_cols[0].selectbox(
+        "Category focus",
+        options=category_options,
+        index=0,
+        key="combo_category_filter",
     )
+    min_support = filter_cols[1].slider(
+        "Minimum products",
+        min_value=3,
+        max_value=30,
+        value=8,
+        step=1,
+        key="combo_min_support",
+    )
+    top_limit = filter_cols[2].slider(
+        "Top features scanned",
+        min_value=6,
+        max_value=20,
+        value=12,
+        step=1,
+        key="combo_top_limit",
+    )
+
+    combo_df = df if combo_category == "All Categories" else df[df["primary_category"] == combo_category]
+
+    df_ingredient_pairs = compute_combo_effects(combo_df, ingredient_cols, top_limit=top_limit, min_support=min_support)
+    df_highlight_pairs = compute_combo_effects(combo_df, highlight_cols, top_limit=top_limit, min_support=min_support)
+
+    st.subheader("Top Ingredient Pairs & Trios")
+    if df_ingredient_pairs.empty:
+        st.info("No ingredient combinations cleared the minimum support or uplift threshold yet.")
+    else:
+        st.caption("Uplift is measured vs. the average popularity for the selected slice.")
+        st.dataframe(df_ingredient_pairs, use_container_width=True)
+
+    st.subheader("Top Highlight Tag Pairs & Trios")
+    if df_highlight_pairs.empty:
+        st.info("No highlight combinations cleared the minimum support or uplift threshold yet.")
+    else:
+        st.caption("Uplift is measured vs. the average popularity for the selected slice.")
+        st.dataframe(df_highlight_pairs, use_container_width=True)
+

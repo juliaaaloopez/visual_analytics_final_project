@@ -82,7 +82,7 @@ def render_popularity_section(data: pd.DataFrame) -> None:
             y="avg_popularity",
             title="Average popularity by category",
             color="avg_popularity",               # key line
-            color_continuous_scale="Magma",
+            color_continuous_scale="RdPu",
         )
         st.plotly_chart(cat_fig, use_container_width=True)
 
@@ -223,90 +223,11 @@ def render_correlation_section(data: pd.DataFrame) -> None:
         else:
             st.write("Not enough variance to call out correlations yet.")
 
-def render_category_section(data: pd.DataFrame, brand_scope: pd.DataFrame) -> None:
-    st.subheader(" Category Deep Dive")
-    dive_categories = sorted(brand_scope["primary_category"].dropna().unique().tolist())
-    if not dive_categories:
-        st.info("No categories left after filtering.")
-        return
-    deep_dive_choice = st.selectbox("Pick a category", options=dive_categories, key="deep_dive_category")
-    cat_df = brand_scope[brand_scope["primary_category"] == deep_dive_choice]
-    if cat_df.empty:
-        st.warning("No rows in this category for the current brand filter.")
-        return
-    if "popularity_score" in cat_df.columns:
-        cat_pop_fig = px.histogram(
-            cat_df,
-            x="popularity_score",
-            nbins=30,
-            title=f"Popularity distribution • {deep_dive_choice}",
-            color_discrete_sequence=["#f098b0"] 
-        )
-        st.plotly_chart(cat_pop_fig, use_container_width=True)
-
-    def summarize_binary(columns, top_n=8):
-        rows = []
-        for col in columns:
-            if col not in cat_df.columns:
-                continue
-            value = cat_df[col].sum()
-            rows.append({"feature": format_feature_label(col), "value": value})
-        return (
-            pd.DataFrame(rows)
-            .sort_values("value", ascending=False)
-            .head(top_n)
-        )
-
-    ing_summary = summarize_binary(ingredient_cols)
-    tag_summary = summarize_binary(highlight_cols)
-    ing_col, tag_col = st.columns(2)
-    if not ing_summary.empty:
-        ing_fig = px.bar(
-            ing_summary,
-            x="value",
-            y="feature",
-            orientation="h",
-            title="Top ingredient families",
-            labels={"value": "Count"},
-            color_discrete_sequence=["#d25f7e"] 
-            
-
-        )
-        ing_col.plotly_chart(ing_fig, use_container_width=True)
-    else:
-        ing_col.info("No ingredient columns to summarize.")
-    if not tag_summary.empty:
-        tag_fig = px.bar(
-            tag_summary,
-            x="value",
-            y="feature",
-            orientation="h",
-            title="Top highlight tags",
-            labels={"value": "Count"},
-            color_discrete_sequence=["#fd4c7b"] 
-        )
-        tag_col.plotly_chart(tag_fig, use_container_width=True)
-    else:
-        tag_col.info("No highlight columns to summarize.")
-
-    metric_candidates = [col for col in ["price_usd", "rating", "loves_count"] if col in cat_df.columns]
-    if metric_candidates:
-        kpi_cols = st.columns(len(metric_candidates))
-        for idx, col_name in enumerate(metric_candidates):
-            value = cat_df[col_name].mean()
-            if col_name == "price_usd":
-                formatted = f"${value:,.0f}"
-            elif col_name == "rating":
-                formatted = f"{value:.2f}"
-            else:
-                formatted = f"{value:,.0f}"
-            kpi_cols[idx].metric(col_name.replace("_", " ").title(), formatted)
 
 sections = [
     ("1. Popularity Overview", "pop", render_popularity_section),
     ("2. Engagement Metrics", "engagement", render_engagement_section),
-    ("3. Price / Rating / Reviews", "correlation", render_correlation_section),
-    ("4. Category Deep Dive", "category", render_category_section),
+    ("3. Price / Rating / Reviews", "correlation", render_correlation_section)
 ]
 
 if "eda_active_section" not in st.session_state:

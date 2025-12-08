@@ -220,10 +220,7 @@ def main():
         st.markdown(
             """
             📉 **Our initial hypothesis didn’t fully hold.**
-            We expected ingredient families and highlight tags to be major popularity drivers, but SHAP shows they play a secondary role compared to engagement metrics (reviews, loves, rating). They still help the model, just not as much as we originally thought.
-
-            👀 **Popularity behaves like a visibility + social-proof problem.**
-            Products succeed when they accumulate strong customer interaction signals. High review volume, strong ratings, and repeated engagement are the main levers influencing predicted popularity.
+            We expected ingredient families and highlight tags to be major popularity drivers, but SHAP shows they play a secondary role when compared to engagement metrics (reviews, loves, rating). They still help the model, just not as much as we originally thought.
 
             🔗 **Ingredients and highlights matter most in combinations.**
             Individual ingredient families rarely shift outcomes, but pairs and trios (e.g., Humectants + Antioxidants + Mineral Sunscreen) consistently show uplift. Customers respond to coherent benefit stories, not isolated claims.
@@ -235,7 +232,7 @@ def main():
             Both high-end and budget items can perform well when paired with the right engagement and messaging signals. Success isn’t about being “cheap vs. premium,” but about positioning.
 
             🏷️ **Operational and merchandising signals matter.**
-            Features such as online-only, new, and child_count (product variants like colors) appear among the strongest SHAP contributors. This suggests popularity is influenced not just by product content but also by how and where the product is launched.
+            Features such as online-only, new, and child_count (product variants like colors) appear among the strongest SHAP contributors. This suggests popularity is influenced not just by product content but also by how, where, and in how many variants the product is launched.
 
             🧠 **Overall, the model’s insights align with real consumer behavior.**
             Customers amplify products with strong social proof, clear positioning, and relevant benefit combinations. Ingredients help, but engagement drives.

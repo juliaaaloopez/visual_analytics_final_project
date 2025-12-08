@@ -110,14 +110,6 @@ with tabs[1]:
         ing_fig = px.bar(top_ing, x="Share", y="Ingredient", orientation="h", title="Top ingredient families",color_discrete_sequence=["#f098b0"]  )
         st.plotly_chart(ing_fig, use_container_width=True)
 
-        pop_hist = px.histogram(
-            cat_df,
-            x="popularity_score",
-            nbins=25,
-            title="Popularity distribution within category",
-            color_discrete_sequence=["#ff4778"] ,
-        )
-        st.plotly_chart(pop_hist, use_container_width=True)
 
         top_tags = (
             cat_df[highlight_cols]
@@ -130,6 +122,15 @@ with tabs[1]:
         )
         tag_fig = px.bar(top_tags, x="Share", y="Tag", orientation="h", title="Top highlight tags", color_discrete_sequence=["#ad284c"]  )
         st.plotly_chart(tag_fig, use_container_width=True)
+
+        pop_hist = px.histogram(
+            cat_df,
+            x="popularity_score",
+            nbins=25,
+            title="Popularity distribution within category",
+            color_discrete_sequence=["#ff4778"] ,
+        )
+        st.plotly_chart(pop_hist, use_container_width=True)
 
         metric_cols = ["price_usd", "rating", "reviews", "loves_count"]
         metric_cols = [col for col in metric_cols if col in cat_df.columns]
@@ -224,37 +225,46 @@ with tabs[3]:
     elif tag_df.empty:
         st.warning("No data for this category slice.")
     else:
-        freq_rows = []
-        pop_rows = []
-        for tag in selected_tags:
-            if tag not in tag_df.columns:
+        rows = []
+        comparison_rows = []
+        for col in selected_tags:
+            if col not in tag_df.columns:
                 continue
-            label = format_feature_name(tag)
-            freq_rows.append({"Tag": label, "Frequency %": tag_df[tag].mean() * 100})
-            has_tag = tag_df[tag] == 1
-            pop_with = tag_df.loc[has_tag, "popularity_score"].mean()
-            pop_without = tag_df.loc[~has_tag, "popularity_score"].mean()
-            pop_rows.extend(
-                [
-                    {"Tag": label, "Group": "Has Tag", "Avg Popularity": pop_with},
-                    {"Tag": label, "Group": "No Tag", "Avg Popularity": pop_without},
-                ]
-            )
-        freq_df = pd.DataFrame(freq_rows).dropna()
-        if not freq_df.empty:
-            st.dataframe(freq_df.set_index("Tag"))
-        pop_df = pd.DataFrame(pop_rows).dropna()
-        if not pop_df.empty:
-            pop_fig = px.bar(
-                pop_df,
-                x="Tag",
-                y="Avg Popularity",
+            has_feature = tag_df[tag_df[col] == 1]
+            no_feature = tag_df[tag_df[col] == 0]
+            avg_pop = has_feature["popularity_score"].mean()
+            label = format_feature_name(col)
+            rows.append({"Highlight": label, "Avg Popularity": avg_pop})
+            for group_name, slice_df in [("Has Tag", has_feature), ("No Tag", no_feature)]:
+                if slice_df.empty:
+                    continue
+                comparison_rows.append(
+                    {
+                        "Highlight": label,
+                        "Group": group_name,
+                        "Popularity Rate": slice_df.get("popularity_proxy", pd.Series(dtype=float)).mean(),
+                    }
+                )
+        if rows:
+            metric_df = pd.DataFrame(rows).dropna()
+            st.dataframe(metric_df.set_index("Highlight"))
+        if comparison_rows:
+            comp_df = pd.DataFrame(comparison_rows).dropna()
+            comp_df["Popularity Rate"] = comp_df["Popularity Rate"] * 100
+            comp_fig = px.bar(
+                comp_df,
+                x="Highlight",
+                y="Popularity Rate",
                 color="Group",
                 barmode="group",
-                title="Popularity score with vs. without tag",
-                color_discrete_sequence=["#761638", "#de1163"]
+                title="Popular vs. non-popular share",
+                color_discrete_sequence=["#a20f4e", "#ff448f"]
             )
-            st.plotly_chart(pop_fig, use_container_width=True)
+            comp_fig.update_yaxes(ticksuffix="%")
+            st.plotly_chart(comp_fig, use_container_width=True)
+        else:
+            st.info("Not enough data to contrast popularity rates for these ingredients.")
+            st.plotly_chart(comp_fig, use_container_width=True)
         with st.expander("Quick interpretation"):
             st.write("Wide gaps between the paired bars (dark and hot pink) suggest the tag has a meaningful link to popularity in this context.")
 
@@ -283,6 +293,16 @@ with tabs[4]:
         step=1,
         key="combo_top_limit",
     )
+
+    with st.expander("How does this work?", expanded=False):
+        st.write(
+            "Here we identify ingredient families and highlight tags that frequently co-occur in products,"
+            " then measure how those combinations shift average popularity scores compared to the overall"
+            " average within the selected category slice." \
+            " You can adjust the minimum support to focus on combinations that appear in more products." \
+            " The top features scanned setting limits how many of the most common ingredients or tags are" \
+            " considered for combinations."
+        )
 
     combo_df = df if combo_category == "All Categories" else df[df["primary_category"] == combo_category]
 

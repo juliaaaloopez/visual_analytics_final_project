@@ -90,7 +90,7 @@ else:
     with st.expander("What are we looking at?", expanded=False):
         st.write(
             "Each bar shows how much a feature moves the popularity prediction on average."      
-            " Bigger bars = bigger impact."
+            " Larger bars = larger impact."
             " Think of it as the model's power ranking of signals."
         )
 
@@ -230,3 +230,11 @@ else:
             st.pyplot(fig2)
         finally:
             plt.close(fig2)
+
+with st.expander("What are we looking at?", expanded=False):
+        st.write(
+            "These are the SHAP plots but printed for each category in order to understand the "
+            "difference in feature importance across categories. "
+            "**Remark**: There are only 5 out of the 8 categories available, since the other ones "
+            "had too few samples to compute reliable SHAP values."
+        )

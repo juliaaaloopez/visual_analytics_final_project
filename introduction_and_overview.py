@@ -42,12 +42,12 @@ stats_rows = [
 if popular_share is not None:
     stats_rows.append(
         {
-            "Metric": "Share of Popular SKUs",
+            "Metric": "Share of Popular Products",
             "Value": f"{popular_share*100:,.1f}%",
         }
     )
 
-st.markdown('<h1 style="color:#c51b7d;"> Introduction & Overview</h1>', unsafe_allow_html=True)
+st.markdown('<h1 style="color:#c51b7d;"> Beauty, Ingredients and Hype: Explaining Product Popularity on Sephora </h1>', unsafe_allow_html=True)
 
 st.caption("Business driven analytics connecting beauty catalog features, machine learning model, and explainable insights.")
 
@@ -74,7 +74,7 @@ st.markdown(
     - **Price and value**: price_usd, kit sizing, price tiers.
     - **Ingredient families**: mapped groupings from parsed ingredient statements.
     - **Highlight tags**: Sephora marketing copy converted into binary product claims.
-    - **Category context**: primary/secondary/tertiary taxonomy and online-only flags.
+    - **Category context**: primary/secondary/tertiary hierarchy and online-only flags.
     """
 )
 st.dataframe(pd.DataFrame(stats_rows), use_container_width=True)
@@ -83,14 +83,14 @@ with st.expander("Data quality snapshot"):
     dq_summary = build_data_health_summary(products_df).drop(
         index=feature_info["binary_columns"], errors="ignore"
     )
-    st.dataframe(dq_summary[["dtype", "unique_count"]].head(25))
+    st.dataframe(dq_summary[["dtype", "unique_count"]].sort_values(by="unique_count", ascending=False).head(25))
 
 st.header("3. Defining Product Popularity")
 st.write(
     """
     The continuous **popularity_score** is a weighted combination of normalized loves, ratings, and review depth,
     giving higher influence to signals with greater variance. We convert that score into a binary proxy where
-    the top 30% (`popularity_proxy = 1`) represent popular products. This top-30% cutoff gives us a practical label for
+    the top 30% represent popular products (`popularity_proxy = 1`). This top-30% cutoff gives us a practical label for
     what counts as a ‘popular’ product. It captures both how much attention a product gets and how positively people 
     react to it, which makes it a useful target for our model.”
     """
@@ -99,10 +99,10 @@ st.write(
 st.header("4. Project Motivation")
 st.write(
     """
-    Sephora's merchandising teams need repeatable playbooks to brief vendors, curate exclusives, and manage
+    Sephora's merchandising teams need repeatable playbooks to brief vendors, create exclusives, and manage
     new launch investments. Our initial hypothesis is that specific ingredient families and
-    marketing highlights materially shift popularity odds, so understanding those signals accelerates assortment
-    and go-to-market decisions.
+    marketing highlights materially shift popularity odds, so understanding those signals accelerates 
+    the go-to-market decisions.
     """
 )
 

@@ -31,16 +31,12 @@ This repository combines exploratory analysis, modeling, and an interactive dash
    - SHAP explainability charts (global importance, dependence plots, per-category slices).
 
 ## How to Run the Streamlit App
-1. **Create/activate an environment** (e.g., `python -m venv .venv && source .venv/bin/activate`).
-2. **Install requirements**:
-   ```bash
-   pip install -r requirements.txt
-   ```
-3. **Launch Streamlit** from the project root:
+1. **Create/activate an environment** 
+2. **Launch Streamlit** from the project root:
    ```bash
    streamlit run introduction_and_overview.py
    ```
-4. **Navigate via the sidebar** to access all pages (Overview, EDA Dashboard, Popularity Drivers, Ingredient & Highlight Insights, Product Prediction).
+3. **Navigate via the sidebar** to access all pages (Overview, EDA Dashboard, Popularity Drivers, Ingredient & Highlight Insights, Product Prediction).
 
 ## Requirements
 - **Python**: 3.9+ recommended.

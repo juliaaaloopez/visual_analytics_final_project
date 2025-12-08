@@ -42,5 +42,3 @@ This repository combines exploratory analysis, modeling, and an interactive dash
 - **Python**: 3.9+ recommended.
 - **Core libraries**: `pandas`, `numpy`, `scikit-learn`, `shap`, `matplotlib`, `seaborn`, `streamlit`, `plotly`.
 - A modern browser for viewing the Streamlit app.
-
-Feel free to adapt the workflow with new datasets or extend the Streamlit pages for additional business questions.

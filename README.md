@@ -1,4 +1,4 @@
-# Sephora Popularity Analytics
+# Beauty, Ingredients and Hype: Explaining Product Popularity on Sephora 
 
 ## Project Overview
 This repository combines exploratory analysis, modeling, and an interactive dashboard to understand what drives product popularity in Sephora's catalog. The workflow:

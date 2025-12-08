@@ -1,4 +1,4 @@
-# Sephora Popularity Analytics
+# Beauty, Ingredients and Hype: Explaining Product Popularity on Sephora 
 
 ## Project Overview
 This repository combines exploratory analysis, modeling, and an interactive dashboard to understand what drives product popularity in Sephora's catalog. The workflow:
@@ -31,20 +31,14 @@ This repository combines exploratory analysis, modeling, and an interactive dash
    - SHAP explainability charts (global importance, dependence plots, per-category slices).
 
 ## How to Run the Streamlit App
-1. **Create/activate an environment** (e.g., `python -m venv .venv && source .venv/bin/activate`).
-2. **Install requirements**:
-   ```bash
-   pip install -r requirements.txt
-   ```
-3. **Launch Streamlit** from the project root:
+1. **Create/activate an environment** 
+2. **Launch Streamlit** from the project root:
    ```bash
    streamlit run introduction_and_overview.py
    ```
-4. **Navigate via the sidebar** to access all pages (Overview, EDA Dashboard, Popularity Drivers, Ingredient & Highlight Insights, Product Prediction).
+3. **Navigate via the sidebar** to access all pages (Overview, EDA Dashboard, Popularity Drivers, Ingredient & Highlight Insights, Product Prediction).
 
 ## Requirements
 - **Python**: 3.9+ recommended.
 - **Core libraries**: `pandas`, `numpy`, `scikit-learn`, `shap`, `matplotlib`, `seaborn`, `streamlit`, `plotly`.
 - A modern browser for viewing the Streamlit app.
-
-Feel free to adapt the workflow with new datasets or extend the Streamlit pages for additional business questions.
